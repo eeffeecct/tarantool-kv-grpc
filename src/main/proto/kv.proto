@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package kv;
 
-option java_package = "ru.timter.kvservice.grpc";
+option java_package = "com.example.kvservice.grpc";
 option java_multiple_files = true;
 
 service KvService {

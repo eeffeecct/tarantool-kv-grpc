@@ -38,14 +38,14 @@ public class TarantoolClientWrapper {
                 .build();
     }
 
-    public void put(String key, byte[] value) throws Exception {
+    public void put(String key, byte[] value) {
         client.eval(
                 "return box.space.KV:replace({...})",
                 Arrays.asList(key, value)
         ).join();
     }
 
-    public GetResult get(String key) throws Exception {
+    public GetResult get(String key) {
         List<?> result = client.eval(
                 "local t = box.space.KV:get(...) " +
                 "if t == nil then return nil end " +
@@ -68,7 +68,7 @@ public class TarantoolClientWrapper {
         return new GetResult(true, value);
     }
 
-    public void delete(String key) throws Exception {
+    public void delete(String key) {
         client.eval(
                 "return box.space.KV:delete(...)",
                 Collections.singletonList(key)
@@ -76,7 +76,7 @@ public class TarantoolClientWrapper {
     }
 
     public void range(String keySince, String keyTo,
-                      BiConsumer<String, byte[]> consumer) throws Exception {
+                      BiConsumer<String, byte[]> consumer) {
         String luaScript =
                 "local key_from, key_to, batch_size, iter = ... " +
                 "local result = {} " +
@@ -144,7 +144,7 @@ public class TarantoolClientWrapper {
         }
     }
 
-    public long count() throws Exception {
+    public long count() {
         List<?> result = client.eval(
                 "return box.space.KV:count()",
                 Collections.emptyList(),

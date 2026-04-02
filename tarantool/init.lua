@@ -22,11 +22,11 @@ box.once('init', function()
         if_not_exists = true,
     })
 
-    box.schema.user.grant('kvuser', 'read,write,execute', 'space', 'KV', {
+    box.schema.user.grant('kvuser', 'read,write', 'space', 'KV', {
         if_not_exists = true,
     })
 
-    box.schema.user.grant('kvuser', 'read,write,execute', 'universe', nil, {
+    box.schema.user.grant('kvuser', 'execute', 'universe', nil, {
         if_not_exists = true,
     })
 end)

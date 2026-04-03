@@ -76,7 +76,8 @@ public class TarantoolClientWrapper {
     }
 
     public void range(String keySince, String keyTo,
-                      BiConsumer<String, byte[]> consumer) {
+                      BiConsumer<String, byte[]> consumer) throws Exception {
+
         String luaScript =
                 "local key_from, key_to, batch_size, iter = ... " +
                 "local result = {} " +
@@ -86,7 +87,7 @@ public class TarantoolClientWrapper {
                 "    table.insert(result, {t[1], t[2]}) " +
                 "    if #result >= batch_size then break end " +
                 "end " +
-                "return result";
+                "return unpack(result)";
 
         String currentKey = keySince;
         boolean isFirstBatch = true;
@@ -97,35 +98,29 @@ public class TarantoolClientWrapper {
 
             List<?> batchResult = client.eval(
                     luaScript,
-                    Arrays.asList(currentKey, keyTo, BATCH_SIZE, iterator),
+                    java.util.Arrays.asList(currentKey, keyTo, BATCH_SIZE, iterator),
                     Object.class
             ).join().get();
 
-            if (batchResult.isEmpty()) {
+            if (batchResult == null || batchResult.isEmpty()) {
                 break;
             }
 
-            List<?> batch;
-            Object first = batchResult.get(0);
-            if (first instanceof List) {
-                // Check: 1 pair or list of pair
-                Object innerFirst = ((List<?>) first).get(0);
-                if (innerFirst instanceof List) {
-                    // List of pair
-                    batch = (List<?>) first;
-                } else {
-                    // 1 pair
-                    batch = batchResult;
-                }
-            } else {
-                break;
-            }
-
-            for (Object item : batch) {
+            int count = 0;
+            for (Object item : batchResult) {
                 if (!(item instanceof List)) continue;
                 List<?> pair = (List<?>) item;
+                if (pair.isEmpty()) continue;
 
-                String key = pair.get(0).toString();
+                Object keyObj = pair.get(0);
+                if (keyObj == null) continue;
+
+                String key = keyObj.toString();
+
+                if (key.compareTo(keyTo) > 0) {
+                    return;
+                }
+
                 byte[] value = null;
                 if (pair.size() > 1 && pair.get(1) != null) {
                     Object raw = pair.get(1);
@@ -136,9 +131,10 @@ public class TarantoolClientWrapper {
 
                 consumer.accept(key, value);
                 currentKey = key;
+                count++;
             }
 
-            if (batch.size() < BATCH_SIZE) {
+            if (count == 0 || count < BATCH_SIZE) {
                 break;
             }
         }
@@ -156,5 +152,10 @@ public class TarantoolClientWrapper {
 
     public void close() throws Exception {
         client.close();
+    }
+
+    // for tests
+    public void evalRaw(String lua, Object... args) {
+        client.eval(lua, java.util.Arrays.asList(args)).join();
     }
 }
